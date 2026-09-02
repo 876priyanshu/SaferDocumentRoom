@@ -80,9 +80,7 @@ design and implementation. Attribution must not imply that NamoID authored,
 audited, or endorses your solution.
 
 ## Submit to the catalog
-
 Commit and push the exact version you want reviewed, then copy its full SHA:
-
 ```bash
 git push
 git rev-parse HEAD
