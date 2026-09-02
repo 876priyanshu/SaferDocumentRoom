@@ -23,8 +23,8 @@ app.use(session({
 
 const requireAuth = (req, res, next) => {
     if (!req.session.user) {
-        req.session.user = { id: 'user_broker_123', email: 'broker@agency.com', role: 'broker' };
-
+        // req.session.user = { id: 'user_broker_123', email: 'broker@agency.com', role: 'broker' };
+        req.session.user = { id: 'user_arjun_456', email: 'arjun@applicant.com', role: 'applicant' };
     }
     next();
 };

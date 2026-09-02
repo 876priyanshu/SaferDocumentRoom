@@ -19,4 +19,133 @@
                 + Create New Room
             </button>
         </div>
-        
+
+        <!-- Room Viewer -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-bold mb-4">Access a Room</h2>
+            <div class="flex gap-2">
+                <input type="text" id="room-id-input" placeholder="Paste Room ID here..." class="border p-2 rounded w-full">
+                <button onclick="loadRoom()" class="bg-gray-800 text-white px-4 py-2 rounded">Load</button>
+            </div>
+        </div>
+
+        <!-- Room Details (Hidden until loaded) -->
+        <div id="room-workspace" class="hidden space-y-6">
+            
+            <!-- Room Info & Upload -->
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                <h3 class="font-bold text-lg">Room Status: <span id="room-status" class="text-green-600">Active</span></h3>
+                <p class="text-sm text-gray-600">Expires: <span id="room-expiry"></span></p>
+                
+                <hr class="my-4">
+                
+                <h4 class="font-bold mb-2">Upload Mock Document</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="doc-name" placeholder="e.g. Fictional_Salary_Slip.pdf" class="border p-2 rounded w-1/2">
+                    <button onclick="uploadDoc()" class="bg-green-600 text-white px-4 py-2 rounded">Upload</button>
+                </div>
+            </div>
+
+            <!-- Documents List -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="font-bold text-lg mb-4">Documents</h3>
+                <ul id="doc-list" class="space-y-3"></ul>
+            </div>
+
+            <!-- Audit Trail -->
+            <div class="bg-gray-900 text-green-400 p-6 rounded-lg shadow-md font-mono text-sm">
+                <h3 class="font-bold text-white text-lg mb-4">Immutable Audit Log</h3>
+                <ul id="audit-list" class="space-y-1"></ul>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentRoomId = null;
+
+        // 1. Fetch current user
+        fetch('/api/me').then(r => r.json()).then(user => {
+            document.getElementById('user-info').innerText = `Logged in as: ${user.email} (${user.role})`;
+        });
+
+        // 2. Create a Room
+        async function createRoom() {
+            const res = await fetch('/api/rooms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ applicantEmail: 'arjun@applicant.com', daysUntilExpiry: 7 })
+            });
+            const room = await res.json();
+            alert(`Room Created! ID: ${room.id}\n(Copy this ID to load it)`);
+            document.getElementById('room-id-input').value = room.id;
+            loadRoom();
+        }
+
+        // 3. Load a Room
+        async function loadRoom() {
+            const roomId = document.getElementById('room-id-input').value;
+            const res = await fetch(`/api/rooms/${roomId}`);
+            const data = await res.json();
+
+            if (data.error) return alert(data.error);
+
+            currentRoomId = data.room.id;
+            document.getElementById('room-workspace').classList.remove('hidden');
+            document.getElementById('room-expiry').innerText = new Date(data.room.expiresAt).toLocaleString();
+            
+            renderDocs(data.documents);
+            renderLogs(data.auditTrail);
+        }
+
+        // 4. Upload Document
+        async function uploadDoc() {
+            const filename = document.getElementById('doc-name').value || 'mock_file.pdf';
+            await fetch(`/api/rooms/${currentRoomId}/documents`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, requirementName: 'Income Proof' })
+            });
+            loadRoom(); // Refresh data
+        }
+
+        // 5. View Document
+        async function viewDoc(docId) {
+            const res = await fetch(`/api/documents/${docId}/view`);
+            const data = await res.json();
+            if (data.error) alert(`Access Denied: ${data.error}`);
+            else alert(`Viewing File: ${data.filename}\nContent: ${data.content}`);
+            loadRoom(); // Refresh logs
+        }
+
+        // 6. Revoke Document
+        async function revokeDoc(docId) {
+            await fetch(`/api/documents/${docId}/revoke`, { method: 'POST' });
+            loadRoom(); // Refresh data
+        }
+
+        // Render Helpers
+        function renderDocs(docs) {
+            const list = document.getElementById('doc-list');
+            list.innerHTML = docs.map(d => `
+                <li class="flex justify-between items-center p-3 border rounded ${d.revokedAt ? 'bg-red-50' : 'bg-gray-50'}">
+                    <div>
+                        <p class="font-bold ${d.revokedAt ? 'line-through text-red-500' : ''}">${d.filename}</p>
+                        <p class="text-xs text-gray-500">${d.revokedAt ? 'REVOKED' : 'Active'}</p>
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="viewDoc('${d.id}')" class="text-blue-600 underline text-sm">View</button>
+                        ${!d.revokedAt ? `<button onclick="revokeDoc('${d.id}')" class="text-red-600 underline text-sm">Revoke</button>` : ''}
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function renderLogs(logs) {
+            document.getElementById('audit-list').innerHTML = logs.reverse().map(l => 
+                `<li>[${new Date(l.timestamp).toLocaleTimeString()}] <b>${l.action}</b> by ${l.actorId} ${l.targetId ? `on ${l.targetId.substring(0,8)}...` : ''}</li>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>
