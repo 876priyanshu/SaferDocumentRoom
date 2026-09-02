@@ -104,4 +104,4 @@ app.get('/api/me', requireAuth, (req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Safer Document Room running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(` Safer Document Room running on http://localhost:${PORT}`));
