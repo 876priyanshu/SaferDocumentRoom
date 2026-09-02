@@ -102,6 +102,68 @@ app.get('/api/me', requireAuth, (req, res) => {
     res.json(req.session.user);
 });
 
+// C. Upload a Document (Applicant action)
+// For speed in this POC, we use JSON body instead of actual multipart file uploads.
+app.post('/api/rooms/:roomId/documents', requireAuth, (req, res) => {
+    const { filename, requirementName, content } = req.body;
+    
+    const newDoc = {
+        id: crypto.randomUUID(),
+        roomId: req.params.roomId,
+        uploaderId: req.session.user.id,
+        filename: filename || 'mock_document.pdf',
+        requirementName: requirementName || 'General',
+        content: content || '[Encrypted Mock Content]',
+        revokedAt: null,
+        createdAt: new Date().toISOString()
+    };
+
+    db.documents.push(newDoc);
+    logAudit(req.params.roomId, req.session.user.id, 'DOCUMENT_UPLOADED', newDoc.id);
+    
+    res.status(201).json(newDoc);
+});
+
+// D. View a Document (Enforces Expiration & Revocation!)
+app.get('/api/documents/:docId/view', requireAuth, (req, res) => {
+    const doc = db.documents.find(d => d.id === req.params.docId);
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    const room = db.rooms.find(r => r.id === doc.roomId);
+
+    // SECURITY: Has the room expired?
+    if (new Date() > new Date(room.expiresAt)) {
+        logAudit(room.id, req.session.user.id, 'EXPIRED_ACCESS_ATTEMPT', doc.id);
+        return res.status(403).json({ error: "Room access has expired." });
+    }
+
+    // SECURITY: Was it revoked by the applicant?
+    if (doc.revokedAt) {
+        logAudit(room.id, req.session.user.id, 'REVOKED_ACCESS_ATTEMPT', doc.id);
+        return res.status(403).json({ error: "Access revoked by the owner." });
+    }
+
+    logAudit(room.id, req.session.user.id, 'DOCUMENT_VIEWED', doc.id);
+    res.json({ filename: doc.filename, content: doc.content });
+});
+
+
+app.post('/api/documents/:docId/revoke', requireAuth, (req, res) => {
+    const doc = db.documents.find(d => d.id === req.params.docId);
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    
+    if (doc.uploaderId !== req.session.user.id) {
+        logAudit(doc.roomId, req.session.user.id, 'UNAUTHORIZED_REVOKE_ATTEMPT', doc.id);
+        return res.status(403).json({ error: "Only the owner can revoke this." });
+    }
+
+    doc.revokedAt = new Date().toISOString();
+    logAudit(doc.roomId, req.session.user.id, 'DOCUMENT_REVOKED', doc.id);
+    
+    res.json({ message: "Document revoked successfully", doc });
+});
+
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(` Safer Document Room running on http://localhost:${PORT}`));
