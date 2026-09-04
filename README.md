@@ -1,94 +1,22 @@
-# SaferDocumentRoom
+# Safer Document Room (NamoID Challenge)
 
-**[Powered by NamoID](https://namoid.in)** ·
-[NamoID documentation](https://docs.namoid.in) ·
-[Challenge catalog](https://challenges.namoid.in)
+A proof-of-concept secure document sharing room that replaces risky email/WhatsApp attachments with identity-bound, expiring, and revocable access.
 
-> Built on the NamoID identity platform for the **NamoID Community Challenges** program.
+## Features
+* **Identity-Bound:** Only authorized session users (Broker or Applicant) can access the room.
+* **Expiring Access:** Rooms have a hard expiry date. Post-expiry, the API rejects all reads.
+* **Manual Revocation:** Applicants can instantly revoke access to specific documents.
+* **Immutable Audit Trail:** Every upload, view, and revocation is logged with a timestamp and actor ID.
 
-This repository is a contributor-owned response to the
-`safer-document-room` problem statement. It was created from the official
-[NamoID challenge template](https://github.com/namoidhq/namoid-challenge-template).
+## How to Run locally
+1. `npm install`
+2. `node server.js`
+3. Visit `http://localhost:3000`
 
-This project is an independent community build. It is not an official
-NamoID product, security recommendation, or endorsement.
-
-## NamoID integration
-
-This project must use **NamoID Hosted Auth as the application's sign-in
-system**. Hosted Auth is the application's authentication system, not a
-social-login button.
-
-Describe the application/client type, issuer/environment configuration,
-callback path, application session, and complete user journey. Do not commit
-credentials, authorization codes, or tokens.
-
-## Community project metadata
-
-- **Challenge ID:** `safer-document-room`
-- **Contributor:** priyanshu
-- **Live demo:** Add URL
-- **Final commit:** Add the full 40-character SHA at submission time
-- **Time spent:** Add estimate
-- **License:** MIT
-
-## Start here
-
-1. Create your repository using **[Use this template](https://github.com/namoidhq/namoid-challenge-template/generate)**.
-2. In the new repository, run:
-
-```bash
-npm run setup -- --challenge=safer-document-room --name="Your Name" --title="Your Project" --repo=https://github.com/you/project
-npm run check
-```
-
-Replace `safer-document-room` with the ID shown in the selected problem statement.
-Setup removes
-the remaining template placeholders and records machine-readable attribution in
-[`namoid-challenge.json`](./namoid-challenge.json).
-
-3. [Create an application in the NamoID Console](https://console.namoid.in/login).
-4. Configure its callback URL and integrate NamoID Hosted Auth into your POC.
-5. Build, test, deploy, and submit the pinned commit.
-
-## Run locally
-
-```bash
-npm run dev
-```
-
-Open `http://localhost:8080`. Replace the starter page with your application or
-keep its branded footer and metadata when adapting it to another framework.
-
-## What works
-
-Describe the required paths you completed.
-
-## Known limitations
-
-State what remains incomplete. Stopping at the challenge timebox is expected.
-
-## AI and external resources
-
-List meaningful AI assistance, adapted code, tutorials, and libraries.
-
-## NamoID attribution
-
-Keep the factual challenge attribution in this README,
-`namoid-challenge.json`, and the deployed page. You may change the surrounding
-design and implementation. Attribution must not imply that NamoID authored,
-audited, or endorses your solution.
-
-## Submit to the catalog
-
-Commit and push the exact version you want reviewed, then copy its full SHA:
-
-```bash
-git push
-git rev-parse HEAD
-```
-
-Open the [Submit a community build](https://github.com/namoidhq/namoid-challenges/issues/new?template=community-build.yml)
-form and paste the 40-character SHA into **Pinned commit SHA**. This identifies
-one immutable version even if you continue changing the repository later. You
-can request a catalog update or removal later.
+## Threat Model
+1. **Threat: Insecure Direct Object Reference (IDOR).** An attacker guesses a document URL to view another user's files.
+   * **Mitigation:** Document URLs are not public. The API middleware strictly validates that the NamoID session user matches the room's authorized participants before returning data.
+2. **Threat: Stale Access.** A broker retains access to sensitive files after the apartment lease is signed.
+   * **Mitigation:** The room enforces a hard `expiresAt` timestamp. Additionally, the applicant can trigger a `revokedAt` flag at any time, immediately breaking all subsequent read attempts.
+3. **Threat: Repudiation.** A broker claims they never viewed the files.
+   * **Mitigation:** The backend forces an `AuditLog` database insertion prior to successfully returning document content, creating a transparent timeline.
