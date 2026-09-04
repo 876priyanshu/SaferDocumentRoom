@@ -3,238 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NamoID | Safer Document Room</title>
-    <!-- Professional Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
+    <title>Safer Document Room</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: { brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' } }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Custom scrollbar for audit log */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-gray-100 text-gray-800 font-sans p-8">
 
-    <!-- Top Navigation -->
-    <nav class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="bg-brand-600 p-2 rounded-lg text-white">
-                <i data-lucide="shield-check" class="w-5 h-5"></i>
-            </div>
-            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Safer Document Room</h1>
-        </div>
-        <div class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-full border border-slate-200">
-            <i data-lucide="user-circle" class="w-5 h-5 text-slate-500"></i>
-            <span id="user-info" class="text-sm font-medium text-slate-700">Loading session...</span>
-        </div>
-    </nav>
-
-    <!-- Main Dashboard Layout -->
-    <div class="flex-1 flex overflow-hidden">
-        
-        <!-- Left Sidebar (Controls) -->
-        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto">
-            <div class="p-6 space-y-8">
-                <!-- Create Room -->
-                <div>
-                    <h2 class="text-xs uppercase font-bold text-slate-400 tracking-wider mb-4">New Request</h2>
-                    <button onclick="createRoom()" class="w-full flex items-center justify-center gap-2 bg-brand-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition-colors shadow-sm">
-                        <i data-lucide="folder-plus" class="w-4 h-4"></i> Create Secure Room
-                    </button>
-                </div>
-
-                <!-- Load Room -->
-                <div>
-                    <h2 class="text-xs uppercase font-bold text-slate-400 tracking-wider mb-4">Access Existing</h2>
-                    <div class="space-y-3">
-                        <input type="text" id="room-id-input" placeholder="Enter Room ID" class="w-full border border-slate-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm transition-all">
-                        <button onclick="loadRoom()" class="w-full flex items-center justify-center gap-2 bg-slate-800 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-slate-900 transition-colors shadow-sm">
-                            <i data-lucide="log-in" class="w-4 h-4"></i> Enter Room
-                        </button>
-                    </div>
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="bg-white p-6 rounded-lg shadow-md flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-blue-600">Safer Document Room</h1>
+                <!-- UPDATED: Auth Controls added here -->
+                <div class="flex items-center gap-3 mt-2">
+                    <p class="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded" id="user-info">Loading session...</p>
+                    <a href="/login" id="login-btn" class="text-sm bg-gray-800 text-white px-3 py-1 rounded hidden hover:bg-gray-900">Sign In</a>
+                    <a href="/logout" id="logout-btn" class="text-sm text-red-600 border border-red-200 bg-red-50 px-3 py-1 rounded hidden hover:bg-red-100">Sign Out</a>
                 </div>
             </div>
-        </aside>
+            <button onclick="createRoom()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                + Create New Room
+            </button>
+        </div>
 
-        <!-- Right Workspace (Content) -->
-        <main class="flex-1 p-8 overflow-y-auto bg-slate-50 relative">
+        <!-- Room Viewer -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-bold mb-4">Access a Room</h2>
+            <div class="flex gap-2">
+                <input type="text" id="room-id-input" placeholder="Paste Room ID here..." class="border p-2 rounded w-full">
+                <button onclick="loadRoom()" class="bg-gray-800 text-white px-4 py-2 rounded">Load</button>
+            </div>
+        </div>
+
+        <!-- Room Details (Hidden until loaded) -->
+        <div id="room-workspace" class="hidden space-y-6">
             
-            <!-- Empty State -->
-            <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400">
-                <i data-lucide="folder-lock" class="w-16 h-16 mb-4 opacity-20"></i>
-                <h3 class="text-lg font-medium text-slate-600">No Room Selected</h3>
-                <p class="text-sm">Create a new room or enter an existing Room ID to begin.</p>
-            </div>
-
-            <!-- Active Room Workspace -->
-            <div id="room-workspace" class="hidden max-w-5xl mx-auto space-y-6">
+            <!-- Room Info & Upload -->
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                <h3 class="font-bold text-lg">Room Status: <span id="room-status" class="text-green-600">Active</span></h3>
+                <p class="text-sm text-gray-600">Expires: <span id="room-expiry"></span></p>
                 
-                <!-- Room Header -->
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex justify-between items-start">
-                    <div>
-                        <div class="flex items-center gap-3 mb-1">
-                            <h2 class="text-xl font-bold text-slate-800">Application Workspace</h2>
-                            <span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold border border-emerald-200 flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
-                            </span>
-                        </div>
-                        <p class="text-sm text-slate-500 flex items-center gap-1">
-                            <i data-lucide="clock" class="w-3.5 h-3.5"></i> Expires: <span id="room-expiry" class="font-medium text-slate-700"></span>
-                        </p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-slate-400 font-mono" id="display-room-id"></p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Left Column: Upload & Documents -->
-                    <div class="lg:col-span-2 space-y-6">
-                        
-                        <!-- Upload Card -->
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                <i data-lucide="upload-cloud" class="w-4 h-4 text-brand-600"></i> Add Mock Document
-                            </h3>
-                            <div class="flex gap-3">
-                                <input type="text" id="doc-name" placeholder="Filename (e.g. Salary_Slip_Oct.pdf)" class="flex-1 border border-slate-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm">
-                                <button onclick="uploadDoc()" class="bg-slate-800 text-white px-5 py-2 rounded-lg font-medium hover:bg-slate-900 transition-colors text-sm whitespace-nowrap">
-                                    Upload File
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Document List -->
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                                <h3 class="font-semibold text-slate-800 flex items-center gap-2">
-                                    <i data-lucide="files" class="w-4 h-4 text-brand-600"></i> Provided Documents
-                                </h3>
-                            </div>
-                            <ul id="doc-list" class="divide-y divide-slate-100"></ul>
-                        </div>
-                    </div>
-
-                    <!-- Right Column: Audit Log -->
-                    <div class="lg:col-span-1">
-                        <div class="bg-slate-900 rounded-xl shadow-lg border border-slate-800 flex flex-col h-[500px]">
-                            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2">
-                                <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
-                                <h3 class="font-semibold text-slate-200 text-sm">Immutable Audit Log</h3>
-                            </div>
-                            <div class="p-5 flex-1 overflow-y-auto custom-scrollbar">
-                                <ul id="audit-list" class="space-y-3 font-mono text-xs"></ul>
-                            </div>
-                        </div>
-                    </div>
+                <hr class="my-4">
+                
+                <h4 class="font-bold mb-2">Upload Mock Document</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="doc-name" placeholder="e.g. Fictional_Salary_Slip.pdf" class="border p-2 rounded w-1/2">
+                    <button onclick="uploadDoc()" class="bg-green-600 text-white px-4 py-2 rounded">Upload</button>
                 </div>
             </div>
-        </main>
+
+            <!-- Documents List -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="font-bold text-lg mb-4">Documents</h3>
+                <ul id="doc-list" class="space-y-3"></ul>
+            </div>
+
+            <!-- Audit Trail -->
+            <div class="bg-gray-900 text-green-400 p-6 rounded-lg shadow-md font-mono text-sm">
+                <h3 class="font-bold text-white text-lg mb-4">Immutable Audit Log</h3>
+                <ul id="audit-list" class="space-y-1"></ul>
+            </div>
+
+        </div>
     </div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3"></div>
-
     <script>
-        // Initialize Icons
-        lucide.createIcons();
         let currentRoomId = null;
 
-        // --- Custom Toast Notification System ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const styles = type === 'error' 
-                ? 'bg-red-50 text-red-900 border-red-200 border shadow-lg' 
-                : type === 'info'
-                ? 'bg-blue-50 text-blue-900 border-blue-200 border shadow-lg'
-                : 'bg-emerald-50 text-emerald-900 border-emerald-200 border shadow-lg';
-            
-            const icon = type === 'error' ? 'alert-circle' : type === 'info' ? 'info' : 'check-circle';
-
-            toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg transform transition-all duration-300 translate-y-4 opacity-0 ${styles}`;
-            toast.innerHTML = `
-                <i data-lucide="${icon}" class="w-5 h-5"></i>
-                <span class="text-sm font-medium">${message}</span>
-            `;
-            
-            container.appendChild(toast);
-            lucide.createIcons(); // render icon in toast
-
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-4', 'opacity-0');
+        // 1. Fetch current user (UPDATED TO HANDLE REAL AUTH)
+        fetch('/api/me')
+            .then(r => {
+                if (!r.ok) throw new Error('Not logged in');
+                return r.json();
+            })
+            .then(user => {
+                if (user && user.email) {
+                    document.getElementById('user-info').innerText = `Logged in as: ${user.email}`;
+                    document.getElementById('logout-btn').classList.remove('hidden');
+                } else {
+                    throw new Error('Not logged in');
+                }
+            })
+            .catch(e => {
+                document.getElementById('user-info').innerText = 'Not signed in';
+                document.getElementById('login-btn').classList.remove('hidden');
             });
 
-            // Animate out and remove
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
-        }
-
-        // --- API Interactions ---
-        fetch('/api/me').then(r => r.json()).then(user => {
-            document.getElementById('user-info').innerText = `${user.email} (${user.role.toUpperCase()})`;
-        });
-
+        // 2. Create a Room
         async function createRoom() {
-            try {
-                const res = await fetch('/api/rooms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ applicantEmail: 'arjun@applicant.com', daysUntilExpiry: 7 })
-                });
-                const room = await res.json();
-                document.getElementById('room-id-input').value = room.id;
-                showToast(`Room generated successfully!`, 'success');
-                loadRoom();
-            } catch (e) {
-                showToast('Failed to create room', 'error');
-            }
+            const res = await fetch('/api/rooms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ applicantEmail: 'arjun@applicant.com', daysUntilExpiry: 7 })
+            });
+            const room = await res.json();
+            
+            if (room.error) return alert(`Error: ${room.error}`);
+            
+            alert(`Room Created! ID: ${room.id}\n(Copy this ID to load it)`);
+            document.getElementById('room-id-input').value = room.id;
+            loadRoom();
         }
 
+        // 3. Load a Room
         async function loadRoom() {
-            const roomId = document.getElementById('room-id-input').value.trim();
-            if(!roomId) return showToast('Please enter a Room ID', 'error');
+            const roomId = document.getElementById('room-id-input').value;
+            if (!roomId) return alert('Please enter a Room ID');
 
             const res = await fetch(`/api/rooms/${roomId}`);
             const data = await res.json();
 
-            if (data.error) return showToast(data.error, 'error');
+            if (data.error) return alert(data.error);
 
             currentRoomId = data.room.id;
-            
-            // UI Swaps
-            document.getElementById('empty-state').classList.add('hidden');
             document.getElementById('room-workspace').classList.remove('hidden');
-            
-            // Populate Data
-            document.getElementById('display-room-id').innerText = `ID: ${data.room.id}`;
-            document.getElementById('room-expiry').innerText = new Date(data.room.expiresAt).toLocaleString(undefined, { 
-                weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-            });
+            document.getElementById('room-expiry').innerText = new Date(data.room.expiresAt).toLocaleString();
             
             renderDocs(data.documents);
             renderLogs(data.auditTrail);
         }
 
+        // 4. Upload Document
         async function uploadDoc() {
             const filename = document.getElementById('doc-name').value || 'mock_file.pdf';
             await fetch(`/api/rooms/${currentRoomId}/documents`, {
@@ -242,94 +130,46 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename, requirementName: 'Income Proof' })
             });
-            document.getElementById('doc-name').value = '';
-            showToast('Document securely uploaded', 'success');
-            loadRoom(); 
+            document.getElementById('doc-name').value = ''; // clear input
+            loadRoom(); // Refresh data
         }
 
+        // 5. View Document
         async function viewDoc(docId) {
             const res = await fetch(`/api/documents/${docId}/view`);
             const data = await res.json();
-            
-            if (data.error) {
-                showToast(`Access Denied: ${data.error}`, 'error');
-            } else {
-                showToast(`Viewing: ${data.filename}`, 'info');
-                // Optional: In a real app, open a modal here.
-            }
-            loadRoom(); 
+            if (data.error) alert(`Access Denied: ${data.error}`);
+            else alert(`Viewing File: ${data.filename}\nContent: ${data.content}`);
+            loadRoom(); // Refresh logs
         }
 
+        // 6. Revoke Document
         async function revokeDoc(docId) {
-            const res = await fetch(`/api/documents/${docId}/revoke`, { method: 'POST' });
-            const data = await res.json();
-            if (data.error) {
-                showToast(data.error, 'error');
-            } else {
-                showToast('Access revoked permanently', 'success');
-                loadRoom(); 
-            }
+            await fetch(`/api/documents/${docId}/revoke`, { method: 'POST' });
+            loadRoom(); // Refresh data
         }
 
-        // --- Render Helpers ---
+        // Render Helpers
         function renderDocs(docs) {
             const list = document.getElementById('doc-list');
-            
-            if(docs.length === 0) {
-                list.innerHTML = `<li class="p-6 text-center text-sm text-slate-500">No documents uploaded yet.</li>`;
-                return;
-            }
-
             list.innerHTML = docs.map(d => `
-                <li class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors ${d.revokedAt ? 'opacity-75' : ''}">
-                    <div class="flex items-center gap-3">
-                        <div class="${d.revokedAt ? 'bg-red-100 text-red-500' : 'bg-brand-100 text-brand-600'} p-2 rounded">
-                            <i data-lucide="${d.revokedAt ? 'file-x-2' : 'file-text'}" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <p class="font-medium text-sm ${d.revokedAt ? 'line-through text-slate-400' : 'text-slate-700'}">${d.filename}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">Uploaded ${new Date(d.createdAt).toLocaleDateString()}</p>
-                        </div>
+                <li class="flex justify-between items-center p-3 border rounded ${d.revokedAt ? 'bg-red-50' : 'bg-gray-50'}">
+                    <div>
+                        <p class="font-bold ${d.revokedAt ? 'line-through text-red-500' : ''}">${d.filename}</p>
+                        <p class="text-xs text-gray-500">${d.revokedAt ? 'REVOKED' : 'Active'}</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="viewDoc('${d.id}')" class="px-3 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded transition-colors">
-                            View
-                        </button>
-                        ${!d.revokedAt ? `
-                            <button onclick="revokeDoc('${d.id}')" class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded transition-colors">
-                                Revoke
-                            </button>
-                        ` : `
-                            <span class="px-3 py-1.5 text-xs font-bold text-red-600 uppercase tracking-wider">Revoked</span>
-                        `}
+                    <div class="space-x-2">
+                        <button onclick="viewDoc('${d.id}')" class="text-blue-600 underline text-sm">View</button>
+                        ${!d.revokedAt ? `<button onclick="revokeDoc('${d.id}')" class="text-red-600 underline text-sm">Revoke</button>` : ''}
                     </div>
                 </li>
             `).join('');
-            lucide.createIcons();
         }
 
         function renderLogs(logs) {
-            const actionColors = {
-                'ROOM_CREATED': 'text-emerald-400',
-                'DOCUMENT_UPLOADED': 'text-blue-400',
-                'DOCUMENT_VIEWED': 'text-purple-400',
-                'DOCUMENT_REVOKED': 'text-orange-400',
-                'REVOKED_ACCESS_ATTEMPT': 'text-red-500 font-bold',
-                'UNAUTHORIZED_REVOKE_ATTEMPT': 'text-red-500'
-            };
-
-            document.getElementById('audit-list').innerHTML = logs.reverse().map(l => {
-                const colorClass = actionColors[l.action] || 'text-slate-400';
-                return `
-                <li class="pl-3 border-l-2 border-slate-700 pb-4 relative">
-                    <div class="absolute w-2 h-2 bg-slate-700 rounded-full -left-[5px] top-1.5"></div>
-                    <div class="text-slate-500 mb-1">${new Date(l.timestamp).toLocaleTimeString()}</div>
-                    <div class="text-slate-300">
-                        <span class="${colorClass}">${l.action}</span>
-                    </div>
-                    <div class="text-slate-500 mt-1 truncate">Actor: ${l.actorId.substring(0,15)}...</div>
-                </li>
-            `}).join('');
+            document.getElementById('audit-list').innerHTML = logs.reverse().map(l => 
+                `<li>[${new Date(l.timestamp).toLocaleTimeString()}] <b>${l.action}</b> by ${l.actorId} ${l.targetId ? `on ${l.targetId.substring(0,8)}...` : ''}</li>`
+            ).join('');
         }
     </script>
 </body>

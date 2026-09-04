@@ -4,6 +4,8 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto'; // For generating unique IDs
+import 'dotenv/config';
+import { Issuer, generators } from 'openid-client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,13 +23,73 @@ app.use(session({
     cookie: { secure: false }
 }));
 
+// NAMOID AUTHENTICATION MIDDLEWARE
+let namoidClient;
+
+// Initialize the NamoID connection
+async function initAuth() {
+    const issuer = await Issuer.discover(process.env.NAMOID_ISSUER_URL);
+    namoidClient = new issuer.Client({
+        client_id: process.env.NAMOID_CLIENT_ID,
+        client_secret: process.env.NAMOID_CLIENT_SECRET,
+        redirect_uris: [process.env.NAMOID_REDIRECT_URI],
+        response_types: ['code']
+    });
+}
+initAuth().catch(console.error);
+
+// The middleware that protects our API routes
 const requireAuth = (req, res, next) => {
     if (!req.session.user) {
-        // req.session.user = { id: 'user_broker_123', email: 'broker@agency.com', role: 'broker' };
-        req.session.user = { id: 'user_arjun_456', email: 'arjun@applicant.com', role: 'applicant' };
+        return res.status(401).json({ error: "Unauthorized. Please sign in." });
     }
     next();
 };
+
+// --- LOGIN ROUTES ---
+// 1. Send the user to NamoID to log in
+app.get('/login', (req, res) => {
+    const code_verifier = generators.codeVerifier();
+    const code_challenge = generators.codeChallenge(code_verifier);
+    req.session.code_verifier = code_verifier; // Save for callback
+
+    const authUrl = namoidClient.authorizationUrl({
+        scope: 'openid profile email',
+        code_challenge,
+        code_challenge_method: 'S256',
+    });
+    res.redirect(authUrl);
+});
+
+// 2. NamoID sends the user back here with a secure code
+app.get('/auth/callback', async (req, res) => {
+    try {
+        const params = namoidClient.callbackParams(req);
+        const tokenSet = await namoidClient.callback(
+            process.env.NAMOID_REDIRECT_URI, 
+            params, 
+            { code_verifier: req.session.code_verifier }
+        );
+        
+        // Save the real user data to our session!
+        const claims = tokenSet.claims();
+        req.session.user = { 
+            id: claims.sub, 
+            email: claims.email, 
+            role: 'broker' // We default to broker for the POC
+        };
+        
+        res.redirect('/'); // Send them to the dashboard
+    } catch (err) {
+        res.status(500).send("Login failed: " + err.message);
+    }
+});
+
+// 3. Logout
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
 
 
 const db = {

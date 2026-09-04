@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "multer": "^2.3.0"
+    "multer": "^2.3.0",
+    "openid-client": "^5.7.1"
   }
 }
